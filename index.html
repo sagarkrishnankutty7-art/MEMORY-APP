@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Time to Test Your Memory</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9eef7;--ink:#1c2238;--card:#ffffff;--line:#d3dae8;--accent:#2f5bea;--ok:#1f9d57;--bad:#d6334b;--muted:#5d647d;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12162a;--ink:#eef0ff;--card:#1e2442;--line:#343c63;--accent:#7b97ff;--ok:#43c383;--bad:#ff6b82;--muted:#a3a9cc;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12162a;--ink:#eef0ff;--card:#1e2442;--line:#343c63;--accent:#7b97ff;--ok:#43c383;--bad:#ff6b82;--muted:#a3a9cc;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Fredoka',system-ui,-apple-system,'Segoe UI',sans-serif}
+main{max-width:600px;margin:0 auto;padding:20px 14px 30px}
+h1{font-size:clamp(1.7rem,6vw,2.4rem);margin:0 0 4px;font-weight:700}
+h2{font-size:1.25rem;margin:0 0 10px}
+p{margin:0 0 14px;color:var(--muted);line-height:1.45}
+button{font:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 18px;cursor:pointer;background:var(--accent);color:#fff}
+button.alt{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.sets{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.sets button{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 2px var(--line);padding:10px 0;line-height:1.1}
+.sets small{display:block;font-weight:400;font-size:.7rem;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+select{font:inherit;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.board{background:var(--card);border-radius:18px;padding:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;box-shadow:0 0 0 2px var(--line)}
+.t{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(1.8rem,9vw,3rem);border-radius:12px;background:transparent;border:0;color:var(--ink);padding:0;font-family:inherit}
+.t.txt{font-size:clamp(1.6rem,8vw,2.6rem);font-weight:700}
+.pick .t{cursor:pointer;box-shadow:inset 0 0 0 2px var(--line)}
+.pick .t.on{background:var(--accent);box-shadow:none}
+.res .t.hit{background:color-mix(in srgb,var(--ok) 30%,transparent);box-shadow:inset 0 0 0 3px var(--ok)}
+.res .t.wrong{background:color-mix(in srgb,var(--bad) 30%,transparent);box-shadow:inset 0 0 0 3px var(--bad)}
+.res .t.miss{box-shadow:inset 0 0 0 3px var(--bad);border-style:dashed}
+.res .t.none{opacity:.35}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:12px}
+.bar i{display:block;height:100%;background:var(--accent);width:100%}
+.big{font-size:2.2rem;font-weight:700;margin:4px 0 2px}
+.hide{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<h1>Time to test your memory</h1>
+
+<section id="menu">
+<p>Study a grid of 20 pictures, then pick out the ones you saw from a mix of 40. There are 25 sets, and you get 5 chances on each set. Choose a set to start.</p>
+<div class="sets" id="sets"></div>
+<div class="row"><label for="secs">Study time</label>
+<select id="secs"><option value="20">20 seconds</option><option value="30" selected>30 seconds</option><option value="45">45 seconds</option><option value="60">60 seconds</option></select><button id="reset" type="button" class="alt">Reset all chances</button></div>
+</section>
+
+<section id="study" class="hide">
+<h2 id="stitle"></h2>
+<div class="bar"><i id="fill"></i></div>
+<div class="board" id="sboard"></div>
+<div class="row"><button id="ready" type="button">I’m ready</button><span id="left" style="color:var(--muted)"></span></div>
+</section>
+
+<section id="recall" class="hide">
+<h2 id="rtitle"></h2>
+<p>Tap every picture that was in the grid. 20 were shown; the rest are new. Wrong picks cost a point.</p>
+<div class="board pick" id="rboard"></div>
+<div class="row"><button id="submit" type="button">Check my answers</button><span id="count" style="color:var(--muted)"></span></div>
+</section>
+
+<section id="result" class="hide">
+<div class="big" id="score"></div>
+<p id="detail"></p>
+<div class="board res" id="resboard"></div>
+<p style="margin-top:10px">Green: remembered. Red fill: not in the grid. Dashed red: missed.</p>
+<div class="row"><button id="retry" type="button">Try this set again</button><button id="next" type="button">Next set</button><button id="home" type="button" class="alt">All sets</button></div>
+</section>
+</main>
+<script>
+var POOL="🚲 🍎 🐶 🥤 ✈️ ☕ 🤝 ⚽ 🦷 🦜 🌲 🏠 🎹 🪓 🚗 🍰 ☂️ 🎉 🎈 🍌 🍇 🍓 🍉 🍍 🥕 🌽 🍔 🍟 🌭 🍩 🍪 🍫 🍿 🍦 🍕 🥑 🍒 🍋 🥝 🍄 🌵 🌴 🌻 🌹 🌙 ☀️ ⭐ 🌈 ☁️ ⚡ 🔥 💧 ❄️ 🐱 🐭 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐔 🐧 🐦 🦆 🦉 🐢 🐍 🐙 🦀 🐠 🐬 🐳 🦋 🐝 🐞 🚀 🚁 🚂 🚢 🚜 🚒 🚑 🚌 ⛵ 🔔 🔑 🔒 🔨 🔧 ✂️ 📚 ✏️ 📎 💡 🎁 🎸 🥁 🎺 🎻 🎤 🎧 📷 📞 ⌚ 👓 👑 👒 👟 🎩 🧦 🧤 🧣 👜 💍 🧭 ⏰ 🪑 🚪 🪟 🧸 🎲 🏀 🏈 🎾 ⚾ 🏓 🎯 9 K A 7 M R 4 B 2 F".split(" ");
+var N=25,MAXT=5,best={},tries={};
+try{best=JSON.parse(localStorage.getItem('recallBest')||'{}')}catch(e){best={}}
+try{tries=JSON.parse(localStorage.getItem('recallTries')||'{}')}catch(e){tries={}}
+function saveTries(){try{localStorage.setItem('recallTries',JSON.stringify(tries))}catch(e){}}
+function left(n){return MAXT-(tries[n]||0)}
+var $=function(i){return document.getElementById(i)};
+var cur=0,seen=[],mix=[],picked={},timer=null;
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuf(arr,r){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function show(id){["menu","study","recall","result"].forEach(function(s){$(s).classList.toggle("hide",s!==id)})}
+function tile(p,tag){var e=document.createElement(tag||"div");e.className="t"+(/^[A-Z0-9]$/.test(p)?" txt":"");e.textContent=p;return e}
+function menu(){
+clearInterval(timer);var g=$("sets");g.innerHTML="";
+for(var i=1;i<=N;i++){(function(n){var b=document.createElement("button");b.type="button";b.innerHTML="Set "+n+"<small>"+(best[n]!=null?"best "+best[n]+"/20":"new")+"</small><small>"+(left(n)>0?left(n)+" left":"no chances")+"</small>";if(left(n)<1)b.disabled=true;b.onclick=function(){begin(n)};g.appendChild(b)})(i)}
+show("menu");
+}
+function begin(n){
+if(left(n)<1){menu();return}
+cur=n;tries[n]=(tries[n]||0)+1;saveTries();var all=shuf(POOL,rng(n*7919+13));seen=all.slice(0,20);mix=all.slice(0,40);
+$("stitle").textContent="Set "+n+" (chance "+tries[n]+" of "+MAXT+"): memorize these pictures";
+var b=$("sboard");b.innerHTML="";seen.forEach(function(p){b.appendChild(tile(p))});
+show("study");
+var total=parseInt($("secs").value,10)*1000,t0=Date.now();
+clearInterval(timer);
+timer=setInterval(function(){var l=total-(Date.now()-t0);if(l<=0){recall();return}$("fill").style.width=(l/total*100)+"%";$("left").textContent=Math.ceil(l/1000)+" s left"},100);
+}
+function recall(){
+clearInterval(timer);picked={};
+mix=shuf(mix,Math.random);
+$("rtitle").textContent="Set "+cur+": what did you see?";
+var b=$("rboard");b.innerHTML="";
+mix.forEach(function(p){var t=tile(p,"button");t.type="button";t.setAttribute("aria-pressed","false");t.onclick=function(){var on=!picked[p];picked[p]=on;t.classList.toggle("on",on);t.setAttribute("aria-pressed",String(on));count()};b.appendChild(t)});
+count();show("recall");
+}
+function count(){var n=0;for(var k in picked)if(picked[k])n++;$("count").textContent=n+" picked"}
+function check(){
+var hit=0,wrong=0,b=$("resboard");b.innerHTML="";
+mix.forEach(function(p){var was=seen.indexOf(p)>-1,on=!!picked[p],t=tile(p);
+if(on&&was){hit++;t.classList.add("hit")}else if(on){wrong++;t.classList.add("wrong")}else if(was){t.classList.add("miss")}else{t.classList.add("none")}
+b.appendChild(t)});
+var sc=Math.max(0,hit-wrong);
+var rec=best[cur]==null||sc>best[cur];
+if(rec){best[cur]=sc;try{localStorage.setItem('recallBest',JSON.stringify(best))}catch(e){}}
+$("score").textContent=sc+" / 20";
+$("detail").textContent="You remembered "+hit+" of 20 pictures and picked "+wrong+" that were not there."+(rec?" New best for this set!":"");
+$("next").classList.toggle("hide",cur>=N);$("retry").classList.toggle("hide",left(cur)<1);
+$("detail").textContent+=" Chances left on this set: "+left(cur)+".";
+show("result");
+}
+$("ready").onclick=recall;$("submit").onclick=check;
+$("retry").onclick=function(){begin(cur)};$("next").onclick=function(){begin(cur+1)};$("home").onclick=menu;
+$("reset").onclick=function(){tries={};saveTries();menu()};
+menu();
+</script>
+</body>
+</html>
